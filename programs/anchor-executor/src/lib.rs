@@ -28,7 +28,8 @@ pub mod anchor_executor {
 
         msg!("Test");
 
-        invoke(&instruction, account_infos)?;
+        let l = account_infos.len() - 1;
+        invoke(&instruction, &account_infos[0..l])?;
 
         Ok(())
     }
@@ -38,7 +39,6 @@ pub mod anchor_executor {
 pub struct Execute<'info> {
     #[account(mut)]
     signer: Signer<'info>,
-    system_program: Program<'info, System>
 }
 
 // #[derive(BorshSerialize, BorshDeserialize)]

@@ -11,7 +11,7 @@ describe("anchor-executor", () => {
 
   const program = anchor.workspace.AnchorExecutor as Program<AnchorExecutor>;
 
-  it("Is initialized!", async () => {
+  it("could create regular account", async () => {
 
     const newAccount = new anchor.web3.Keypair();
     const ownerAccount = new anchor.web3.Keypair();
@@ -30,12 +30,9 @@ describe("anchor-executor", () => {
       anchor.web3.SystemProgram.createAccount(createAccountParams),
     );
 
-    // console.log(createAccountTransaction.instructions[0])
-
     let newAccountInfo = await provider.connection.getAccountInfo(newAccount.publicKey);
     expect(newAccountInfo).to.be.a('null');
 
-    // Add your test here.
     const tx = await program.methods.execute(createAccountTransaction.instructions[0])
       .remainingAccounts([
         {
@@ -47,6 +44,11 @@ describe("anchor-executor", () => {
           pubkey: newAccount.publicKey,
           isSigner: true,
           isWritable: true
+        },
+        {
+          pubkey: anchor.web3.SystemProgram.programId,
+          isSigner: false,
+          isWritable: false
         }
       ])
       .signers([newAccount])
@@ -56,6 +58,5 @@ describe("anchor-executor", () => {
       newAccountInfo = await provider.connection.getAccountInfo(newAccount.publicKey);
       expect(newAccountInfo.owner).to.deep.equal(anchor.web3.SystemProgram.programId)
   
-    // console.log("Your transaction signature", tx);
   });
 });
