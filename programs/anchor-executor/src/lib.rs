@@ -8,9 +8,10 @@ declare_id!("FN3asVygEpi3NXFJVrn2SSdvB3PQkKfRNMSR3HJGpofd");
 pub mod anchor_executor {
     use super::*;
 
-    pub fn execute(ctx: Context<Execute>, ix: InstrictionData) -> Result<()> {
-        ix.execute(ctx.remaining_accounts)?;
-        
+    pub fn execute(ctx: Context<Execute>, ixs: InstructionsData) -> Result<()> {
+        msg!("Entering inner execute");
+        ixs.execute(&ctx.remaining_accounts)?;
+
         Ok(())
     }
 }
@@ -21,7 +22,6 @@ pub struct Execute<'info> {
     signer: Signer<'info>,
 }
 
-// #[derive(BorshSerialize, BorshDeserialize)]
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct AccountsMetadata {
     pub pubkey: Pubkey,
@@ -29,16 +29,20 @@ pub struct AccountsMetadata {
     pub is_writable: bool,
 }
 
-// #[derive(BorshSerialize, BorshDeserialize)]
 #[derive(AnchorSerialize, AnchorDeserialize)]
-pub struct InstrictionData {
+pub struct InstructionData {
     pub program_id: Pubkey,
     pub keys: Vec<AccountsMetadata>,
     pub data: Vec<u8>,
     pub indexes: Vec<u8>
 }
 
-impl InstrictionData {
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct InstructionsData {
+    pub list: Vec<InstructionData>
+}
+
+impl InstructionData {
     fn execute(&self, infos: &[AccountInfo]) -> Result<()> {
         let mut cpi_accounts = Vec::new();
 
@@ -63,6 +67,16 @@ impl InstrictionData {
         }
 
         invoke(&instruction, &ix_accounts)?;
+
+        Ok(())
+    }
+}
+
+impl InstructionsData {
+    fn execute(&self, infos: &[AccountInfo]) -> Result<()> {
+        for ix in &self.list {
+            ix.execute(&infos)?
+        }
 
         Ok(())
     }
