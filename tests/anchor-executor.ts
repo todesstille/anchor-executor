@@ -33,7 +33,10 @@ describe("anchor-executor", () => {
     let newAccountInfo = await provider.connection.getAccountInfo(newAccount.publicKey);
     expect(newAccountInfo).to.be.a('null');
 
-    const tx = await program.methods.execute(createAccountTransaction.instructions[0])
+    const ix0 = createAccountTransaction.instructions[0];
+    ix0["indexes"] = Buffer.from([0, 1]);
+
+    const tx = await program.methods.execute(ix0)
       .remainingAccounts([
         {
           pubkey: provider.wallet.publicKey,
