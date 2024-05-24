@@ -1,27 +1,17 @@
 import * as anchor from "@coral-xyz/anchor";
+import * as spl from "@solana/spl-token"
 import { Program } from "@coral-xyz/anchor";
 import { AnchorExecutor } from "../target/types/anchor_executor";
 import { expect } from "chai";
 
+import {
+  getCreateFundingAccountInstruction,
+  getCreateTokenAccountInstruction,
+  getInitializeTokenAccountInstruction
+} from "./helpers/instructions";
+import {createToken} from "./helpers/token";
+
 const provider = anchor.AnchorProvider.env();
-
-const getCreateFundingAccountInstruction = async (from, account) => {
-  const rentExemptionAmount = await provider.connection.getMinimumBalanceForRentExemption(0);
-
-  const createAccountParams = {
-    fromPubkey: from.publicKey,
-    newAccountPubkey: account.publicKey,
-    lamports: rentExemptionAmount,
-    space: 0,
-    programId: anchor.web3.SystemProgram.programId
-  };
-
-  const createAccountTransaction = new anchor.web3.Transaction().add(
-    anchor.web3.SystemProgram.createAccount(createAccountParams),
-  );
-
-  return createAccountTransaction.instructions[0];
-}
 
 describe("anchor-executor", () => {
   // Configure the client to use the local cluster.
@@ -29,7 +19,7 @@ describe("anchor-executor", () => {
 
   const program = anchor.workspace.AnchorExecutor as Program<AnchorExecutor>;
 
-  it("could create regular account", async () => {
+  it("could create multiple regular accounts", async () => {
 
     const account0 = new anchor.web3.Keypair();
     const account1 = new anchor.web3.Keypair();
@@ -84,6 +74,68 @@ describe("anchor-executor", () => {
 
       newAccountInfo = await provider.connection.getAccountInfo(account1.publicKey);
       expect(newAccountInfo.owner).to.deep.equal(anchor.web3.SystemProgram.programId)
+
+  });
+
+  it("could create token accounts", async () => {
+    const token = await createToken(18);
+
+    const account0 = new anchor.web3.Keypair();
+
+    const accountsMeta = [
+      {
+        pubkey: provider.wallet.publicKey,
+        isSigner: true,
+        isWritable: true
+      },
+      {
+        pubkey: account0.publicKey,
+        isSigner: true,
+        isWritable: true
+      },
+      {
+        pubkey: token.publicKey,
+        isSigner: false,
+        isWritable: true
+      },
+      {
+        pubkey: anchor.web3.SystemProgram.programId,
+        isSigner: false,
+        isWritable: false
+      },
+      {
+        pubkey: anchor.web3.SYSVAR_RENT_PUBKEY,
+        isSigner: false,
+        isWritable: false
+      },
+      {
+        pubkey: spl.TOKEN_PROGRAM_ID,
+        isSigner: false,
+        isWritable: false
+      }
+    ]
+
+    let newAccountInfo = await provider.connection.getAccountInfo(account0.publicKey);
+    expect(newAccountInfo).to.be.a('null');
+
+    const ix0 = await getCreateTokenAccountInstruction(provider.wallet, account0)
+    ix0["indexes"] = Buffer.from([0, 1]);
+
+    const ix1 = await getInitializeTokenAccountInstruction(provider.wallet, account0, token)
+    ix1["indexes"] = Buffer.from([0, 1, 2, 4]);
+
+    const ixs = {
+      list: [ix0, ix1]
+    }
+
+    const tx = await program.methods.execute(ixs)
+      .remainingAccounts(accountsMeta)
+      .signers([account0])
+      .rpc()
+      .catch(e => console.error(e));
+
+    newAccountInfo = await provider.connection.getAccountInfo(account0.publicKey);
+    expect(newAccountInfo.owner).to.deep.equal(spl.TOKEN_PROGRAM_ID)
 
   });
 });
