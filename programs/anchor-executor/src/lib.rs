@@ -1,6 +1,6 @@
 use anchor_lang::prelude::{*};
 use solana_program::instruction::{Instruction, AccountMeta};
-use solana_program::program::invoke;
+use solana_program::program::{invoke, invoke_signed};
 
 declare_id!("FN3asVygEpi3NXFJVrn2SSdvB3PQkKfRNMSR3HJGpofd");
 
@@ -9,7 +9,6 @@ pub mod anchor_executor {
     use super::*;
 
     pub fn execute(ctx: Context<Execute>, ixs: InstructionsData) -> Result<()> {
-        msg!("Entering inner execute");
         ixs.execute(&ctx.remaining_accounts)?;
 
         Ok(())
@@ -34,7 +33,8 @@ pub struct InstructionData {
     pub program_id: Pubkey,
     pub keys: Vec<AccountsMetadata>,
     pub data: Vec<u8>,
-    pub indexes: Vec<u8>
+    pub indexes: Vec<u8>,
+    pub pda_seeds: Vec<Vec<Vec<u8>>>
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -66,7 +66,19 @@ impl InstructionData {
             ix_accounts.push(infos[index.to_owned() as usize].clone());
         }
 
-        invoke(&instruction, &ix_accounts)?;
+        if self.pda_seeds.len() == 0 {
+            invoke(&instruction, &ix_accounts)?;
+        } else {
+            let pda_vec: Vec<Vec<&[u8]>> = self.pda_seeds.iter().map(
+                |v| v.iter().map(
+                    |v1| v1.as_slice()
+                ).collect()
+            ).collect();
+
+            let pda: Vec<&[&[u8]]> = pda_vec.iter().map(|v| v.as_slice()).collect();
+
+            invoke_signed(&instruction, &ix_accounts, pda.as_slice())?;
+        }
 
         Ok(())
     }
@@ -80,4 +92,12 @@ impl InstructionsData {
 
         Ok(())
     }
+}
+
+pub fn test() {
+    let mut x = vec![vec!(vec!(0 as u8))];
+    
+    let y = x.iter().map(
+        |u| u.iter().map(|v| v.as_slice()).collect::<Vec<&[u8]>>().as_slice()
+    ).collect::<Vec<&[&[u8]]>>();
 }

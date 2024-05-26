@@ -7,8 +7,8 @@ export const getCreateFundingAccountInstruction = async (from, account) => {
     const rentExemptionAmount = await provider.connection.getMinimumBalanceForRentExemption(0);
   
     const createAccountParams = {
-      fromPubkey: from.publicKey,
-      newAccountPubkey: account.publicKey,
+      fromPubkey: from,
+      newAccountPubkey: account,
       lamports: rentExemptionAmount,
       space: 0,
       programId: anchor.web3.SystemProgram.programId
@@ -31,8 +31,8 @@ export const getCreateFundingAccountInstruction = async (from, account) => {
         anchor.web3.SystemProgram.createAccount({
             programId: spl.TOKEN_PROGRAM_ID,
             space: spl.AccountLayout.span,
-            fromPubkey: from.publicKey,
-            newAccountPubkey: account.publicKey,
+            fromPubkey: from,
+            newAccountPubkey: account,
             lamports: rentExempt,
         })
     );
@@ -45,9 +45,9 @@ export const getCreateFundingAccountInstruction = async (from, account) => {
 
     tx.add(
         spl.createInitializeAccountInstruction(
-            account.publicKey,
-            mint.publicKey,
-            from.publicKey,
+            account,
+            mint,
+            from,
             spl.TOKEN_PROGRAM_ID
         )
       );
