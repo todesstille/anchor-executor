@@ -69,15 +69,17 @@ impl InstructionData {
         if self.pda_seeds.len() == 0 {
             invoke(&instruction, &ix_accounts)?;
         } else {
-            let pda_vec: Vec<Vec<&[u8]>> = self.pda_seeds.iter().map(
+            let pda_seeds_2d_vector = self.pda_seeds.iter().map(
                 |v| v.iter().map(
                     |v1| v1.as_slice()
-                ).collect()
+                ).collect::<Vec<&[u8]>>()
+            ).collect::<Vec<Vec<&[u8]>>>();
+
+            let pda_seeds_vector: Vec<&[&[u8]]> = pda_seeds_2d_vector.iter().map(
+                |v| v.as_slice()
             ).collect();
 
-            let pda: Vec<&[&[u8]]> = pda_vec.iter().map(|v| v.as_slice()).collect();
-
-            invoke_signed(&instruction, &ix_accounts, pda.as_slice())?;
+            invoke_signed(&instruction, &ix_accounts, pda_seeds_vector.as_slice())?;
         }
 
         Ok(())
@@ -92,12 +94,4 @@ impl InstructionsData {
 
         Ok(())
     }
-}
-
-pub fn test() {
-    let mut x = vec![vec!(vec!(0 as u8))];
-    
-    let y = x.iter().map(
-        |u| u.iter().map(|v| v.as_slice()).collect::<Vec<&[u8]>>().as_slice()
-    ).collect::<Vec<&[&[u8]]>>();
 }
