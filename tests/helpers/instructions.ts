@@ -54,3 +54,18 @@ export const getCreateFundingAccountInstruction = async (from, account) => {
 
     return tx.instructions[0];
   }
+
+  export const getMintToInstruction = async (accountAddress, tokenAddress, authorityAddress, amount) => {
+    let tx = new anchor.web3.Transaction();
+
+    tx.add(
+      spl.createMintToInstruction(
+        tokenAddress,
+        accountAddress,
+        authorityAddress,
+        amount,
+      )
+    );
+
+    return tx.instructions[0];
+  }

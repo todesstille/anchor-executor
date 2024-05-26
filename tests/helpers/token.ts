@@ -3,8 +3,8 @@ import * as spl from "@solana/spl-token"
 
 const provider = anchor.AnchorProvider.env();
 
-export const createToken = async (decimals) => {
-    const mintingAddress = new anchor.web3.Keypair();
+export const createToken = async (mintAuthority, burnAuthority, decimals) => {
+    const tokenAddress = new anchor.web3.Keypair();
   
     const rentExempt =  await provider.connection.getMinimumBalanceForRentExemption(spl.MintLayout.span);
   
@@ -14,23 +14,23 @@ export const createToken = async (decimals) => {
                 programId: spl.TOKEN_PROGRAM_ID,
                 space: spl.MintLayout.span,
                 fromPubkey: provider.wallet.publicKey,
-                newAccountPubkey: mintingAddress.publicKey,
+                newAccountPubkey: tokenAddress.publicKey,
                 lamports: rentExempt,
             })
         )
         tx.add(
             spl.createInitializeMintInstruction(
-                mintingAddress.publicKey,
+                tokenAddress.publicKey,
                 decimals,
-                provider.wallet.publicKey,
-                provider.wallet.publicKey,
+                mintAuthority,
+                burnAuthority,
                 spl.TOKEN_PROGRAM_ID
             )
         );
   
-        const signature = await provider.sendAndConfirm(tx, [mintingAddress]);
+        const signature = await provider.sendAndConfirm(tx, [tokenAddress]);
   
-        return mintingAddress;
+        return tokenAddress;
   }
   
   export const createTokenAccount = async (mintAddress) => {
@@ -52,7 +52,7 @@ export const createToken = async (decimals) => {
     tx.add(
       spl.createInitializeAccountInstruction(
           tokenAccount.publicKey,
-          mintAddress.publicKey,
+          mintAddress,
           provider.wallet.publicKey,
           spl.TOKEN_PROGRAM_ID
       )
